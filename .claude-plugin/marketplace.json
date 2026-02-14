@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "curriculum",
+  "owner": {
+    "name": "Unicorn Inc.",
+    "email": "dev@unicorn-inc.com"
+  },
+  "plugins": [
+    {
+      "name": "tech-curriculum",
+      "source": "./plugins/tech-curriculum",
+      "category": "education"
+    }
+  ]
+}

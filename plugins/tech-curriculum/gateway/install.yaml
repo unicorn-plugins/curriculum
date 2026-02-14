@@ -1,0 +1,9 @@
+# tech-curriculum 플러그인 도구 설치 매니페스트
+# MCP/LSP 서버 불필요 — OMC 기본 제공 도구와 빌트인 도구로 충분
+
+# 커스텀 도구
+custom_tools:
+  - name: generate_image
+    description: "Gemini 모델 기반 이미지 생성"
+    source: tools/general/generate_image.py
+    required: false

@@ -1,0 +1,10 @@
+{
+  "name": "tech-curriculum",
+  "version": "1.0.7",
+  "description": "참고 자료 분석 기반 기술교육 커리큘럼 자동 생성 DMAP 플러그인",
+  "author": {
+    "name": "Unicorn Inc."
+  },
+  "license": "MIT",
+  "keywords": ["tech-curriculum", "dmap", "plugin", "education", "curriculum", "technical-training"]
+}
