@@ -60,6 +60,7 @@ Phase 4d는 오케스트레이터가 직접 수행함.
 
 | 문서 | 경로 | 용도 |
 |------|------|------|
+| 경로 설정 | `gateway/path-config.yaml` | 플러그인 루트 및 경로 설정 |
 | Gateway 매핑 | `gateway/runtime-mapping.yaml` | 티어 및 도구 매핑 |
 | content-analyst | `agents/content-analyst/` | 참고 자료 분석 에이전트 |
 | curriculum-writer | `agents/curriculum-writer/` | 커리큘럼 작성 에이전트 |
@@ -118,13 +119,18 @@ Phase 4d는 오케스트레이터가 직접 수행함.
 
 ## 산출물 디렉토리 규칙
 
-모든 산출물은 `output/{topic}/` 디렉토리에 저장한다.
+모든 산출물은 `{PLUGIN_ROOT}/output/{topic}/` 디렉토리에 저장한다.
 
+- **경로 해석 규칙**:
+  1. `gateway/path-config.yaml`에서 `plugin_root` 읽기
+  2. 워크스페이스 루트 경로 확인 (예: `git rev-parse --show-toplevel` 또는 현재 작업 디렉토리)
+  3. `PLUGIN_ROOT` = `{워크스페이스 루트}/{plugin_root}` (절대 경로)
+  4. `OUTPUT_DIR` = `{PLUGIN_ROOT}/output/{topic}/` (절대 경로)
 - **`{topic}`**: 참고 자료의 주제를 적절히 표현하는 영문 kebab-case 이름
   - 예: `gen-ai-fundamentals`, `prompt-engineering`, `cloud-native-architecture`, `data-engineering`
 - **결정 시점**: Phase 2(자료 분석) 완료 직후, 오케스트레이터가 분석 결과를 기반으로 결정
-- **디렉토리 생성**: 오케스트레이터가 Phase 3 위임 전에 `output/{topic}/` 디렉토리를 생성
-- **경로 전달**: Phase 3, Phase 4 에이전트에 CONTEXT로 `OUTPUT_DIR=output/{topic}/` 전달
+- **디렉토리 생성**: 오케스트레이터가 Phase 3 위임 전에 `{PLUGIN_ROOT}/output/{topic}/` 디렉토리를 생성
+- **경로 전달**: Phase 3, Phase 4 에이전트에 CONTEXT로 절대 경로 `PLUGIN_ROOT`와 `OUTPUT_DIR`을 전달
 
 ---
 
@@ -143,7 +149,7 @@ AskUserQuestion 도구로 다음 정보를 수집:
 3. **차별성**: 커리큘럼 생성에 적용할 차별성 요소
 4. **참고 자료 파일 경로** 확인 (교재, 기술 문서, 가이드 등)
 5. **강사 프로필 파일 경로** 요청 (강의계획서 생성용)
-   - 사용자에게 강사 프로필 파일 경로를 요청하며, 샘플 파일 위치(`resources/samples/instructor-profile.md`)를 안내
+   - 사용자에게 강사 프로필 파일 경로를 요청하며, 샘플 파일 위치(`{PLUGIN_ROOT}/resources/samples/instructor-profile.md`)를 안내
    - 샘플 파일과 동일한 Markdown 형식으로 작성된 파일을 제공하도록 가이드
 
 > Phase 1 완료: 수집된 정보를 사용자에게 요약 보고
@@ -164,10 +170,13 @@ AskUserQuestion 도구로 다음 정보를 수집:
 
 Phase 2 완료 후, 오케스트레이터는 다음을 수행:
 
-1. 자료 분석 결과에서 핵심 주제를 파악
-2. 주제를 영문 kebab-case로 변환하여 `{topic}` 결정
-3. `output/{topic}/` 디렉토리 생성 (Bash `mkdir -p`)
-4. 이후 Phase 3, Phase 4에 `OUTPUT_DIR=output/{topic}/` 을 CONTEXT로 전달
+1. `gateway/path-config.yaml`에서 `plugin_root` 값을 읽음
+2. 워크스페이스 루트 경로 확인 (`git rev-parse --show-toplevel` 등)
+3. `PLUGIN_ROOT` = `{워크스페이스 루트}/{plugin_root}` 절대 경로 계산
+4. 자료 분석 결과에서 핵심 주제를 파악
+5. 주제를 영문 kebab-case로 변환하여 `{topic}` 결정
+6. `{PLUGIN_ROOT}/output/{topic}/` 디렉토리 생성 (Bash `mkdir -p`)
+7. 이후 Phase 3, Phase 4에 절대 경로로 `PLUGIN_ROOT`와 `OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/` 을 CONTEXT로 전달
 
 ### Phase 3: 커리큘럼 생성 → Agent: curriculum-writer
 
@@ -179,7 +188,7 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
 - **MUST DO**: 교육 대상/형태/차별성 반영, 수행 계획서 승인 후 커리큘럼 생성,
   CONTEXT로 전달받은 OUTPUT_DIR에 저장, 커리큘럼 생성 완료 시 감성적인 완료 메시지로 사용자에게 알림
 - **MUST NOT DO**: 프리젠테이션 작성, 요구사항 임의 변경
-- **CONTEXT**: Phase 2의 분석 결과, Phase 1의 교육 정보, OUTPUT_DIR=output/{topic}/
+- **CONTEXT**: Phase 2의 분석 결과, Phase 1의 교육 정보, PLUGIN_ROOT={절대경로}, OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/
 
 > Phase 3 완료: 커리큘럼을 사용자에게 보고
 
@@ -200,7 +209,7 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
 - **MUST NOT DO**: 커리큘럼 수정, 자료 재분석,
   사용자 승인 없이 PPTX 명세 작성, PPT 스타일을 사용자 문의 없이 임의 결정,
   PPTX 파일을 직접 생성 (에이전트는 명세 작성까지만 담당)
-- **CONTEXT**: Phase 3의 커리큘럼, Phase 1의 교육 정보, OUTPUT_DIR=output/{topic}/
+- **CONTEXT**: Phase 3의 커리큘럼, Phase 1의 교육 정보, PLUGIN_ROOT={절대경로}, OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/
 
 > Phase 4a 완료: 골든써클 기획서 + PPTX 자연어 명세를 사용자에게 보고
 
@@ -223,7 +232,7 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
   폰트 크기를 12pt 미만으로 설정하지 않음 (예외: 표지 인용구 11pt, 푸터 10pt),
   커리큘럼 수정, 자료 재분석
 - **CONTEXT**: Phase 4a의 PPTX 자연어 명세(pptx-specification.md),
-  Phase 3의 커리큘럼, Phase 1의 교육 정보, OUTPUT_DIR=output/{topic}/
+  Phase 3의 커리큘럼, Phase 1의 교육 정보, PLUGIN_ROOT={절대경로}, OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/
 
 > Phase 4b 완료: 제안서 PPTX 명세(pptx-proposal-specification.md)를 사용자에게 보고
 
@@ -249,7 +258,7 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
   Phase 4b의 제안서 PPTX 명세(pptx-proposal-specification.md),
   강사 프로필 파일 경로(Phase 1에서 수집),
   Phase 1의 교육 정보,
-  OUTPUT_DIR=output/{topic}/
+  PLUGIN_ROOT={절대경로}, OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/
 
 > Phase 4c 완료: 강의계획서 Excel 명세(excel-syllabus-specification.md)를 사용자에게 보고
 
@@ -260,9 +269,9 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 **Claude Cowork**에서 PPTX 생성 및 강의계획서 Excel 작성을 요청하는 방법을 가이드한다.
 
 - **산출물 파일 확인**: 다음 파일이 존재하는지 확인
-  - `output/{topic}/pptx-specification.md` (발표용 프리젠테이션 명세)
-  - `output/{topic}/pptx-proposal-specification.md` (제안서 PPTX 명세)
-  - `output/{topic}/excel-syllabus-specification.md` (강의계획서 Excel 명세)
+  - `{PLUGIN_ROOT}/output/{topic}/pptx-specification.md` (발표용 프리젠테이션 명세)
+  - `{PLUGIN_ROOT}/output/{topic}/pptx-proposal-specification.md` (제안서 PPTX 명세)
+  - `{PLUGIN_ROOT}/output/{topic}/excel-syllabus-specification.md` (강의계획서 Excel 명세)
 - **사용자 안내**: 다음 내용을 사용자에게 전달
   1. 3개 명세 파일의 경로 및 용도 안내
   2. Claude Cowork에서 PPTX를 생성하는 방법 안내
@@ -272,20 +281,20 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
   아래 명세파일들을 기반으로 산출물을 생성해 주세요.
 
   ■ 발표용 프리젠테이션 (PPTX)
-  - 명세 파일: output/{topic}/pptx-specification.md
-  - 이미지 파일: output/{topic}/images/
+  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/pptx-specification.md
+  - 이미지 파일: {PLUGIN_ROOT}/output/{topic}/images/
 
   ■ 교육 제안서 (PPTX)
-  - 명세 파일: output/{topic}/pptx-proposal-specification.md
-  - 이미지 파일: output/{topic}/images/
+  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/pptx-proposal-specification.md
+  - 이미지 파일: {PLUGIN_ROOT}/output/{topic}/images/
   - 참고: 제안서는 PptxGenJS(Node.js) 코드를 생성하여 PPTX를 만듭니다.
     명세에 포함된 디자인 시스템(컬러 팔레트, 폰트 체계, 레이아웃 규격, 슬라이드 유형 카탈로그)을
     그대로 코드에 반영해 주세요.
 
   ■ 강의계획서 (Excel)
-  - 명세 파일: output/{topic}/excel-syllabus-specification.md
+  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/excel-syllabus-specification.md
   - 강사 프로필: {강사 프로필 파일 경로}
-  - 샘플 강의계획서: resources/samples/CNA 부트캠프 강의계획서.pdf
+  - 샘플 강의계획서: {PLUGIN_ROOT}/resources/samples/CNA 부트캠프 강의계획서.pdf
   - 참고: 명세에 포함된 시트별 셀 데이터, 병합 범위, 색상 팔레트, 폰트 체계를
     openpyxl 코드에 그대로 반영하여 Excel을 생성해 주세요.
   ```
@@ -306,7 +315,7 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 - [ ] 제안서 PPTX 명세(pptx-proposal-specification.md) 작성 완료
 - [ ] 강의계획서 Excel 명세(excel-syllabus-specification.md) 작성 완료
 - [ ] Claude Cowork 위임 안내 완료 (PPTX 생성 + 강의계획서 Excel 생성 가이드)
-- [ ] 모든 산출물이 output/{topic}/ 디렉토리에 저장됨
+- [ ] 모든 산출물이 {PLUGIN_ROOT}/output/{topic}/ 디렉토리에 저장됨
 
 [Top](#generate-curriculum)
 
@@ -320,11 +329,11 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 |-------|----------|
 | Phase 1 | 교육 대상, 교육 형태, 차별성, 참고 자료 경로, 강사 프로필 파일 경로가 모두 수집되었는지 확인 |
 | Phase 2 | 자료 분석 결과 보고서가 생성되었는지 확인 |
-| Phase 3 | 수행 계획서 + 세부 커리큘럼이 output/{topic}/에 저장되었는지 확인 |
+| Phase 3 | 수행 계획서 + 세부 커리큘럼이 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인 |
 | Phase 4a | 골든써클 기획서 + PPTX 자연어 명세(pptx-specification.md)가 반환되었는지 확인 |
-| Phase 4b | 제안서 PPTX 명세(pptx-proposal-specification.md)가 output/{topic}/에 저장되었는지 확인 |
-| Phase 4c | 강의계획서 Excel 명세(excel-syllabus-specification.md)가 output/{topic}/에 저장되었는지 확인, 커리큘럼 구조에 맞는 시트 명세(3~5개) 포함 확인 |
-| Phase 4d | 3개 명세 파일(pptx-specification.md, pptx-proposal-specification.md, excel-syllabus-specification.md)이 output/{topic}/에 존재하고, Claude Cowork 위임 방법(PPTX 생성 + 강의계획서 Excel 생성)이 안내되었는지 확인 |
+| Phase 4b | 제안서 PPTX 명세(pptx-proposal-specification.md)가 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인 |
+| Phase 4c | 강의계획서 Excel 명세(excel-syllabus-specification.md)가 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인, 커리큘럼 구조에 맞는 시트 명세(3~5개) 포함 확인 |
+| Phase 4d | 3개 명세 파일(pptx-specification.md, pptx-proposal-specification.md, excel-syllabus-specification.md)이 {PLUGIN_ROOT}/output/{topic}/에 존재하고, Claude Cowork 위임 방법(PPTX 생성 + 강의계획서 Excel 생성)이 안내되었는지 확인 |
 
 [Top](#generate-curriculum)
 

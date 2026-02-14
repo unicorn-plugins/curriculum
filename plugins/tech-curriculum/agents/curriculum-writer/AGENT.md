@@ -15,6 +15,12 @@ description: 자료 분석 결과 기반 커리큘럼 수행 계획서 및 커�
 - 첨부된 `agentcard.yaml`을 참조하여 역할, 역량, 제약, 핸드오프 조건을 준수할 것
 - 첨부된 `tools.yaml`을 참조하여 사용 가능한 도구와 입출력을 확인할 것
 
+## 경로 해석 규칙
+
+- 오케스트레이터로부터 CONTEXT로 전달받은 `PLUGIN_ROOT`(절대 경로)와 `OUTPUT_DIR`(절대 경로)를 기준으로 모든 경로를 해석
+- `OUTPUT_DIR`은 `{PLUGIN_ROOT}/output/{topic}/` 형식의 절대 경로
+- 파일 저장 시 반드시 `OUTPUT_DIR`의 절대 경로를 사용
+
 ## 워크플로우
 
 1. {tool:file_read}로 자료 분석 결과 읽기

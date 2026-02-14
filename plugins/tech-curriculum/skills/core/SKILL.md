@@ -98,6 +98,11 @@ tech-curriculum 플러그인의 시스템 전체 행동 규범을 정의하고,
 
 ---
 
+## 경로 해석 규칙
+
+- 모든 경로는 `gateway/path-config.yaml`의 `plugin_root`를 기준으로 해석
+- 스킬 위임 시 `PLUGIN_ROOT`(절대 경로)를 CONTEXT에 포함하여 전달
+
 ## 제약 사항
 
 - 기술교육 도메인(커리큘럼, 참고 자료 분석, 프리젠테이션) 외 요청은 정중히 거절

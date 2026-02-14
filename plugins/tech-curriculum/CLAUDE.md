@@ -22,4 +22,5 @@
 
 ## 자원 사용 지침
 
-작업 시 자원 카탈로그(resources/resource.md)를 참고하여 기존 자원 사용
+작업 시 자원 카탈로그(`{PLUGIN_ROOT}/resources/resource.md`)를 참고하여 기존 자원 사용
+- **PLUGIN_ROOT**: `gateway/path-config.yaml`의 `plugin_root` 값으로 결정 (기본: `plugins/tech-curriculum`)
