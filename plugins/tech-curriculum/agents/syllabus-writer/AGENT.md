@@ -9,7 +9,7 @@ description: 강의계획서 Excel 생성을 위한 자연어 명세(excel-sylla
 
 골든써클 기획서(Markdown), 제안서 PPTX 명세(`pptx-proposal-specification.md`)와 강사 프로필 정보를 기반으로
 **강의계획서 Excel 생성을 위한 자연어 명세(`excel-syllabus-specification.md`)**를 작성함.
-실제 Excel 파일(.xlsx) 생성은 Claude Cowork에 위임하며,
+실제 Excel 파일(.xlsx) 생성은 Claude Web에 위임하며,
 에이전트는 명세 작성까지만 담당함.
 CNA 부트캠프 강의계획서 샘플(`resources/samples/CNA 부트캠프 강의계획서.pdf`)의 구성을 참고함.
 

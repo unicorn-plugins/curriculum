@@ -51,7 +51,7 @@
 
 - [Claude Code](https://claude.com/claude-code) CLI 설치
 - Python 3.10+ (이미지 생성 도구 실행용, 선택사항)
-- Node.js (PPTX/Excel 파일 생성 시 필요, Claude Cowork 사용 시)
+- Node.js (PPTX/Excel 파일 생성 시 필요, Claude Web 사용 시)
 
 ### 플러그인 설치
 
@@ -205,7 +205,7 @@ generate-curriculum 스킬을 호출하면 다음 5가지 단계를 순차적으
 - proposal-writer 에이전트가 제안서/보고서 스타일 PPTX 명세 작성
 - PptxGenJS 코드 생성용 상세 명세(pptx-proposal-specification.md) 생성
 - 이미지 생성 및 레이아웃 설정 포함
-- Claude Cowork를 통한 PPTX 파일 생성 방법 안내
+- Claude Web를 통한 PPTX 파일 생성 방법 안내
 
 **Phase 4c: 강의계획서 명세**
 - syllabus-writer 에이전트가 강의계획서 Excel 명세 작성
@@ -213,7 +213,7 @@ generate-curriculum 스킬을 호출하면 다음 5가지 단계를 순차적으
 - Excel 생성을 위한 자연어 명세(excel-syllabus-specification.md) 생성
 - 주차별 강의 내용, 평가 방식, 학습 자료 등 포함
 
-**Phase 4d: Claude Cowork 위임 안내**
+**Phase 4d: Claude Web 위임 안내**
 - 생성된 PPTX/Excel 명세를 기반으로 실제 파일 생성 방법 제시
 - PptxGenJS를 활용한 PPTX 코드 생성 방법 안내
 - openpyxl을 활용한 Excel 생성 방법 안내

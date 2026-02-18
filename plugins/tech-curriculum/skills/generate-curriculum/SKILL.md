@@ -23,7 +23,7 @@ user-invocable: true
     - [Phase 4a: 프리젠테이션 기획 → Agent: presentation-writer](#phase-4a-프리젠테이션-기획--agent-presentation-writer)
     - [Phase 4b: 제안서 PPTX 명세 작성 → Agent: proposal-writer](#phase-4b-제안서-pptx-명세-작성--agent-proposal-writer)
     - [Phase 4c: 강의계획서 명세 작성 → Agent: syllabus-writer](#phase-4c-강의계획서-명세-작성--agent-syllabus-writer)
-    - [Phase 4d: Claude Cowork 위임 안내](#phase-4d-claude-cowork-위임-안내)
+    - [Phase 4d: Claude Web 위임 안내](#phase-4d-claude-web-위임-안내)
   - [완료 조건](#완료-조건)
   - [검증 프로토콜](#검증-프로토콜)
   - [상태 정리](#상태-정리)
@@ -83,7 +83,7 @@ Phase 4d는 오케스트레이터가 직접 수행함.
 | Phase 4a | `/oh-my-claudecode:ralph` | 프리젠테이션 기획 완료까지 지속 |
 | Phase 4b | `/oh-my-claudecode:ralph` | 제안서 PPTX 명세 작성 완료까지 지속 |
 | Phase 4c | `/oh-my-claudecode:ralph` | 강의계획서 Excel 명세 작성 완료까지 지속 |
-| Phase 4d | (없음 - 오케스트레이터 직접 수행) | Claude Cowork 위임 안내 |
+| Phase 4d | (없음 - 오케스트레이터 직접 수행) | Claude Web 위임 안내 |
 
 [Top](#generate-curriculum)
 
@@ -190,7 +190,40 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
 - **MUST NOT DO**: 프리젠테이션 작성, 요구사항 임의 변경
 - **CONTEXT**: Phase 2의 분석 결과, Phase 1의 교육 정보, PLUGIN_ROOT={절대경로}, OUTPUT_DIR={PLUGIN_ROOT}/output/{topic}/
 
-> Phase 3 완료: 커리큘럼을 사용자에게 보고
+> Phase 3 완료: 커리큘럼을 사용자에게 보고하고 승인 요청
+
+#### Phase 3 → Phase 4 전환: 커리큘럼 검토 및 승인 + API Key 확인
+
+Phase 3 완료 후, 오케스트레이터는 **반드시** 다음을 수행:
+
+**A. 커리큘럼 승인**
+
+1. 생성된 산출물 확인:
+   - `{OUTPUT_DIR}/curriculum-plan.md` (수행 계획서)
+   - `{OUTPUT_DIR}/curriculum-detailed.md` (세부 커리큘럼)
+2. **사용자에게 커리큘럼 검토 요청**: 수행 계획서와 세부 커리큘럼의 핵심 내용을 요약하여 보고하고, 사용자에게 검토를 요청
+3. **사용자 승인 획득**: AskUserQuestion 도구로 승인 여부를 확인
+   - 승인 시: 다음 단계(B)로 진행
+   - 수정 요청 시: 피드백을 반영하여 curriculum-writer에 재위임 후 다시 승인 요청
+   - **승인 없이 Phase 4로 진행하는 것은 절대 금지**
+
+**B. Gemini API Key 확인 (이미지 생성 필수 사전 조건)**
+
+Phase 4a, 4b에서 이미지 생성({tool:image_generate})이 필수이므로, Phase 4 진입 전에 API Key를 반드시 확보해야 함.
+
+4. 환경변수 `GEMINI_API_KEY` 존재 여부 확인:
+   ```bash
+   echo "${GEMINI_API_KEY:+SET}"
+   ```
+5. API Key가 **없는 경우**:
+   - AskUserQuestion으로 사용자에게 Gemini API Key를 요청
+   - 안내 메시지: "Phase 4에서 프리젠테이션/제안서 이미지를 생성하려면 Gemini API Key가 필요합니다. Google AI Studio(https://aistudio.google.com/apikey)에서 발급받을 수 있습니다."
+   - 사용자가 API Key를 제공하면 환경변수로 설정:
+     ```bash
+     export GEMINI_API_KEY="{사용자 제공 키}"
+     ```
+   - **API Key 없이 Phase 4로 진행하는 것은 절대 금지**
+6. API Key가 **있는 경우**: Phase 4a로 바로 진행
 
 ### Phase 4a: 프리젠테이션 기획 → Agent: presentation-writer
 
@@ -262,11 +295,11 @@ Phase 2 완료 후, 오케스트레이터는 다음을 수행:
 
 > Phase 4c 완료: 강의계획서 Excel 명세(excel-syllabus-specification.md)를 사용자에게 보고
 
-### Phase 4d: Claude Cowork 위임 안내
+### Phase 4d: Claude Web 위임 안내
 
 이 Phase는 오케스트레이터 스킬(generate-curriculum)이 직접 수행함.
 Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
-**Claude Cowork**에서 PPTX 생성 및 강의계획서 Excel 작성을 요청하는 방법을 가이드한다.
+**Claude Web**에서 PPTX 생성 및 강의계획서 Excel 작성을 요청하는 방법을 가이드한다.
 
 - **산출물 파일 확인**: 다음 파일이 존재하는지 확인
   - `{PLUGIN_ROOT}/output/{topic}/pptx-specification.md` (발표용 프리젠테이션 명세)
@@ -274,34 +307,49 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
   - `{PLUGIN_ROOT}/output/{topic}/excel-syllabus-specification.md` (강의계획서 Excel 명세)
 - **사용자 안내**: 다음 내용을 사용자에게 전달
   1. 3개 명세 파일의 경로 및 용도 안내
-  2. Claude Cowork에서 PPTX를 생성하는 방법 안내
-  3. Claude Cowork에서 강의계획서 Excel을 생성하는 방법 안내
-- **안내 메시지 템플릿**:
-  ```
-  아래 명세파일들을 기반으로 산출물을 생성해 주세요.
+  2. Claude Web에 업로드할 파일 목록 안내 (명세 마크다운 + 이미지)
+  3. Claude Web에서 사용할 프롬프트 안내
+- **Claude Web 사용 방법**: claude.ai에 접속하여 명세 파일(마크다운)과 이미지를 첨부 파일로 업로드한 후, 아래 프롬프트를 입력하여 실제 파일 생성을 요청
+- **안내 메시지**: 산출물별로 다음과 같이 안내
 
-  ■ 발표용 프리젠테이션 (PPTX)
-  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/pptx-specification.md
-  - 이미지 파일: {PLUGIN_ROOT}/output/{topic}/images/
+  **1. 발표용 프리젠테이션 (PPTX)**
+  - 업로드 파일:
+    - `{OUTPUT_DIR}/pptx-specification.md`
+    - `{OUTPUT_DIR}/images/` 폴더의 프리젠테이션 이미지 전체 (slide_*.png)
+  - 프롬프트:
+    ```
+    첨부한 pptx-specification.md는 PptxGenJS 기반 PPTX 생성을 위한 자연어 명세입니다.
+    이 명세를 읽고 PptxGenJS 코드를 생성하여 실행해 주세요.
+    첨부된 이미지 파일들을 명세에 지정된 슬라이드에 배치해 주세요.
+    ```
 
-  ■ 교육 제안서 (PPTX)
-  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/pptx-proposal-specification.md
-  - 이미지 파일: {PLUGIN_ROOT}/output/{topic}/images/
-  - 참고: 제안서는 PptxGenJS(Node.js) 코드를 생성하여 PPTX를 만듭니다.
+  **2. 교육 제안서 (PPTX)**
+  - 업로드 파일:
+    - `{OUTPUT_DIR}/pptx-proposal-specification.md`
+    - `{OUTPUT_DIR}/images/proposal_cover.png`
+    - `{OUTPUT_DIR}/images/proposal_profile.png`
+  - 프롬프트:
+    ```
+    첨부한 pptx-proposal-specification.md는 PptxGenJS 기반 교육 제안서 PPTX 생성을 위한
+    상세 명세입니다. 이 명세를 읽고 PptxGenJS 코드를 생성하여 실행해 주세요.
     명세에 포함된 디자인 시스템(컬러 팔레트, 폰트 체계, 레이아웃 규격, 슬라이드 유형 카탈로그)을
-    그대로 코드에 반영해 주세요.
+    그대로 코드에 반영해 주세요. 첨부된 이미지 파일들을 명세에 지정된 슬라이드에 배치해 주세요.
+    ```
 
-  ■ 강의계획서 (Excel)
-  - 명세 파일: {PLUGIN_ROOT}/output/{topic}/excel-syllabus-specification.md
-  - 강사 프로필: {강사 프로필 파일 경로}
-  - 샘플 강의계획서: {PLUGIN_ROOT}/resources/samples/CNA 부트캠프 강의계획서.pdf
-  - 참고: 명세에 포함된 시트별 셀 데이터, 병합 범위, 색상 팔레트, 폰트 체계를
-    openpyxl 코드에 그대로 반영하여 Excel을 생성해 주세요.
-  ```
+  **3. 강의계획서 (Excel)**
+  - 업로드 파일:
+    - `{OUTPUT_DIR}/excel-syllabus-specification.md`
+  - 프롬프트:
+    ```
+    첨부한 excel-syllabus-specification.md는 openpyxl 기반 강의계획서 Excel 생성을 위한
+    자연어 명세입니다. 이 명세를 읽고 openpyxl 코드를 생성하여 실행해 주세요.
+    명세에 포함된 시트별 셀 데이터, 병합 범위, 색상 팔레트, 폰트 체계를
+    그대로 코드에 반영하여 Excel을 생성해 주세요.
+    ```
 - **EXPECTED OUTCOME**: 사용자에게 PPTX 생성 및 강의계획서 Excel 생성 방법 안내 완료
 - **MUST NOT DO**: PPTX/Excel 파일을 직접 생성하지 않음, 명세 내용을 임의 변경하지 않음
 
-> Phase 4d 완료: Claude Cowork 위임 안내 완료. 전체 워크플로우 완료 보고
+> Phase 4d 완료: Claude Web 위임 안내 완료. 전체 워크플로우 완료 보고
 
 [Top](#generate-curriculum)
 
@@ -314,7 +362,7 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 - [ ] 발표용 PPTX 자연어 명세(pptx-specification.md) 작성 완료
 - [ ] 제안서 PPTX 명세(pptx-proposal-specification.md) 작성 완료
 - [ ] 강의계획서 Excel 명세(excel-syllabus-specification.md) 작성 완료
-- [ ] Claude Cowork 위임 안내 완료 (PPTX 생성 + 강의계획서 Excel 생성 가이드)
+- [ ] Claude Web 위임 안내 완료 (PPTX 생성 + 강의계획서 Excel 생성 가이드)
 - [ ] 모든 산출물이 {PLUGIN_ROOT}/output/{topic}/ 디렉토리에 저장됨
 
 [Top](#generate-curriculum)
@@ -329,11 +377,11 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 |-------|----------|
 | Phase 1 | 교육 대상, 교육 형태, 차별성, 참고 자료 경로, 강사 프로필 파일 경로가 모두 수집되었는지 확인 |
 | Phase 2 | 자료 분석 결과 보고서가 생성되었는지 확인 |
-| Phase 3 | 수행 계획서 + 세부 커리큘럼이 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인 |
+| Phase 3 | 수행 계획서 + 세부 커리큘럼이 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인, **사용자 커리큘럼 승인 획득 확인**, **GEMINI_API_KEY 환경변수 확보 확인** |
 | Phase 4a | 골든써클 기획서 + PPTX 자연어 명세(pptx-specification.md)가 반환되었는지 확인 |
 | Phase 4b | 제안서 PPTX 명세(pptx-proposal-specification.md)가 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인 |
 | Phase 4c | 강의계획서 Excel 명세(excel-syllabus-specification.md)가 {PLUGIN_ROOT}/output/{topic}/에 저장되었는지 확인, 커리큘럼 구조에 맞는 시트 명세(3~5개) 포함 확인 |
-| Phase 4d | 3개 명세 파일(pptx-specification.md, pptx-proposal-specification.md, excel-syllabus-specification.md)이 {PLUGIN_ROOT}/output/{topic}/에 존재하고, Claude Cowork 위임 방법(PPTX 생성 + 강의계획서 Excel 생성)이 안내되었는지 확인 |
+| Phase 4d | 3개 명세 파일(pptx-specification.md, pptx-proposal-specification.md, excel-syllabus-specification.md)이 {PLUGIN_ROOT}/output/{topic}/에 존재하고, Claude Web 위임 방법(PPTX 생성 + 강의계획서 Excel 생성)이 안내되었는지 확인 |
 
 [Top](#generate-curriculum)
 
@@ -366,9 +414,11 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 | 4 | 프롬프트 조립 순서: 공통 정적 → 에이전트별 정적 → 동적 |
 | 5 | Phase 4에서 PPT 스타일을 사용자에게 반드시 문의 |
 | 6 | Phase 3 완료 시 감성적인 완료 메시지 전달 |
+| 6a | Phase 3 완료 후 반드시 사용자에게 커리큘럼 검토 및 승인을 요청하고, 승인 획득 후에만 Phase 4 진행 |
+| 6b | Phase 4 진입 전 GEMINI_API_KEY 환경변수를 반드시 확인하고, 없으면 사용자에게 요청하여 확보 후 진행 |
 | 7 | Phase 4b에서 제안서 PPTX 명세 작성 시 폰트 규격(22/18/14/12pt)과 최소 12pt 규칙 엄격 준수 |
 | 8 | Phase 4c에서 강의계획서 Excel 명세 작성 시 제안서 명세의 커리큘럼 데이터 완전 포함 및 강사 프로필 매핑 |
-| 9 | Phase 4d에서 PPTX/Excel 직접 생성하지 않고, 반드시 Claude Cowork 위임 방법을 사용자에게 안내 |
+| 9 | Phase 4d에서 PPTX/Excel 직접 생성하지 않고, 반드시 Claude Web 위임 방법을 사용자에게 안내 |
 
 [Top](#generate-curriculum)
 
@@ -380,7 +430,7 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 |---|----------|
 | 1 | Phase 순서를 건너뛰거나 역순 수행 금지 |
 | 2 | 에이전트가 담당하는 작업을 스킬이 직접 수행 금지 |
-| 3 | 사용자 승인 없이 다음 Phase로 진행 금지 |
+| 3 | 사용자 승인 없이 다음 Phase로 진행 금지 (특히 Phase 3 → Phase 4 전환 시 커리큘럼 승인 필수) |
 | 4 | 요구사항의 4-Step 사용자 플로우를 변형하지 않음 |
 
 [Top](#generate-curriculum)
@@ -398,7 +448,7 @@ Phase 4a~4c에서 생성된 명세 산출물을 사용자에게 안내하고,
 - [ ] Phase 4a에 presentation-writer 에이전트 위임 5항목 포함
 - [ ] Phase 4b에 proposal-writer 에이전트 위임 5항목 포함
 - [ ] Phase 4c에 syllabus-writer 에이전트 위임 5항목 포함
-- [ ] Phase 4d에 Claude Cowork 위임 안내 워크플로우 포함 (PPTX 생성 + 강의계획서 Excel 생성 가이드 모두 안내)
+- [ ] Phase 4d에 Claude Web 위임 안내 워크플로우 포함 (PPTX 생성 + 강의계획서 Excel 생성 가이드 모두 안내)
 - [ ] Phase 1에 강사 프로필 파일 경로 수집 항목 포함
 
 [Top](#generate-curriculum)

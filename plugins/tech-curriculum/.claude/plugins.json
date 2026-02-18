@@ -1,0 +1,9 @@
+{
+  "plugins": [
+    {
+      "name": "tech-curriculum",
+      "path": "/Users/dreamondal/workspace/curriculum/plugins/tech-curriculum",
+      "enabled": true
+    }
+  ]
+}
